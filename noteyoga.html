@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>NoteYoga - Just write to the notepad</title>
+    <link rel="shortcut icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAApVBMVEUBAAICAQMDAgQGBQcIBwkKCQsNDA4ODQ8XFhgeHR8fHiAiISMmJScoJykvLjA2NTc3NjhOTU5PTk9fXl9gX2BjYmN/fn9/f4CJiYqQkJGUlJWWlpeenp+goKGhoaKkpKWsrK2xsbKysrO0tLW1tba6urvHx8fIyMjU1NTV1dXX19fZ2dnp6enu7u7v7+/w8PDx8fHy8vLz8/P19fX29vb8/Pz///9FQDgDAAAAf0lEQVR4AU3I1xrBQBQA4clGIUgQvfcu+r7/ozl2P5y5mIsf6xqWopl1eTgayJ8VrJH2Cu4VSF4K7KnXv1kN46g80TA1EIz+sAyRwtUXDkVchZ2HS5UcIKtdHbRgAG7tD2wC0gwpSzFbgQaYGCk20BTooOoKzDUsBB4Jv+pP+wYmCRzyqC2kuAAAAABJRU5ErkJggg==">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+        html {
+            background: #2c3e50;
+            color: #fff;
+            font-family: Helvetica, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            transition: background-color 1s ease;
+        }
+        
+        #files {
+            position: fixed;
+            left: 10px;
+            bottom: 10px;
+            margin: 0;
+            padding: 0;
+        }
+        
+        #files>li {
+            border: 1px solid transparent;
+            border-radius: 50px;
+            height: 20px;
+            background: #ccc;
+            margin-top: 10px;
+            font-size: 0;
+            width: 20px;
+            vertical-align: top;
+            opacity: .6;
+            cursor: pointer;
+        }
+        
+        #files>li.selected {
+            background: transparent;
+            border: 1px solid #ccc;
+            opacity: .7;
+            cursor: default;
+        }
+        
+        #t {
+            border: none;
+            display: block;
+            font-size: 120%;
+            min-height: 200px;
+            line-height: 1.6em;
+            margin: 0 auto;
+            padding: 5%;
+            width: 90%;
+            max-width: 30em;
+            outline: none;
+            transition: background .5s linear, color .5s linear;
+        }
+        
+        #t a {
+            color: #1abc9c
+        }
+        
+        #controls {
+            position: fixed;
+            text-align: center;
+            top: 5px;
+            width: 50%;
+            left: 25%;
+            opacity: 0;
+            padding: 0 20px 40px;
+            transition: opacity .3s linear;
+        }
+        
+        #controls:hover {
+            opacity: 1;
+            transition: opacity .1s linear;
+        }
+        
+        #controls a {
+            text-decoration: none;
+            color: #000;
+            background: rgba(255, 255, 255, .5);
+            display: inline-block;
+            font-weight: 100;
+            height: 24px;
+            width: 24px;
+            line-height: 24px;
+            padding: 2px;
+            border-radius: 50px;
+        }
+        
+        .details {
+            font-size: 11px;
+            opacity: .4;
+            position: fixed;
+            bottom: 5px;
+            right: 5px;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <div id="wrap">
+        <ul id="files"></ul>
+
+        <div id="t" contenteditable="true"></div>
+
+        <div id="controls">
+            <a id="undo" href="#">⟲</a>
+            <a id="redo" href="#">⟳</a>
+            <a id="bold" href="#" style="font-weight:bold">K</a>
+            <a id="italic" href="#" style="font-style:italic"><i>I</i></a>
+            <a id="p" href="#">p</a>
+            <a id="h1" href="#">H1</a>
+            <a id="h2" href="#">H2</a>
+            <a id="insertUnorderedList" href="#">ul</a>
+            <a id="insertOrderedList" href="#">ol</a>
+            <a id="blockquote" href="#">"</a>
+
+            <a data-role="removeFormat" href="#">✎</a>
+        </div>
+
+        <div class="details"><span id="words"></span></div>
+
+
+    </div>
+
+    <script>
+        function ready(fn) {
+            if (document.readyState != 'loading') {
+                fn();
+            } else {
+                document.addEventListener('DOMContentLoaded', fn);
+            }
+        }
+
+        function supports_html5_storage() {
+            try {
+                return 'localStorage' in window && window['localStorage'] !== null;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        ready(function() {
+
+            // Variables
+            var files_ = 5;
+
+            function countwords() {
+                words.innerHTML = t.innerHTML.split(/\s+/).length;
+            }
+
+            // Resize window
+            window.onresize = function() {
+                resize();
+            };
+
+            function resize() {
+                t.style.minHeight = window.innerHeight - 140;
+            }
+            resize();
+
+
+            // Save text in file
+            t.addEventListener('input', function() {
+                localStorage.setItem("noteyoga_t" + localStorage.getItem("noteyoga_page"), t.innerHTML);
+                countwords();
+            });
+
+            // Count selected text
+            t.addEventListener('mouseup', function() {
+                var selObj = window.getSelection();
+                if (selObj.toString()) {
+                    countwords();
+                    words.innerHTML = selObj.toString().split(/\s+/).length + ' / ' + words.innerHTML;
+                }
+            });
+			
+            // Select file
+            function selectfile(i) {
+				i = i || 1;
+                t.innerHTML = localStorage.getItem("noteyoga_t" + i);
+                localStorage.setItem("noteyoga_page", i);
+                words.innerHTML = t.innerHTML.split(/\s+/).length;
+                t.focus();
+            }
+
+            /* File list and selection */
+            for (i = 1; i <= files_; i++) {
+                var li = document.createElement("li");
+                li.appendChild(document.createTextNode(i));
+                li.setAttribute("title", 'Note ' + i);
+                files.appendChild(li);
+            }
+            files.addEventListener("click", function(e) {
+                files.children[0 | localStorage.getItem("noteyoga_page") - 1].classList.remove('selected');
+                e.target.classList.add('selected');
+                selectfile(e.target.innerHTML);
+            });
+
+            // WYSIWYG editor
+            controls.addEventListener("click", function(e) {
+                switch (e.target.getAttribute('id')) {
+                    case 'h1':
+                    case 'h2':
+                    case 'p':
+                    case 'blockquote':
+                        document.execCommand('formatBlock', false, e.target.getAttribute('id'));
+                        break;
+                    default:
+                        document.execCommand(e.target.getAttribute('id'), false, null);
+                        break;
+                }
+                return false;
+            });
+
+
+            // Select last active file
+            selectfile(localStorage.getItem("noteyoga_page"));
+            files.children[0 | localStorage.getItem("noteyoga_page") - 1].classList.add('selected');
+            t.innerHTML = t.innerHTML || '<h1>Welcome to <b>NotYoga</b>!</h1><h4>Free minimal writing app that helps you focus.';
+            t.focus();
+        });
+    </script>
+
+</body>
+
+</html>
