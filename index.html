@@ -151,7 +151,7 @@
             var files_ = 5;
 
             function countwords() {
-                words.innerHTML = t.innerHTML.split(/\s+/).length;
+                words.innerHTML = t.innerHTML ? (t.innerHTML.replace(/<br>/g, ' ').replace(/['";:,.?¿\-!¡]+/g, '').match(/\S+/g) || []).length : 0;
             }
 
             // Resize window
